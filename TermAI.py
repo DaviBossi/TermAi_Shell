@@ -10,10 +10,15 @@ import requests
 from dotenv import load_dotenv
 import ply.lex as lex
 import ply.yacc as yacc
+import datetime
 
 # ----------------------------------
 # LEXER
 # ----------------------------------
+class ClearScreenSignal(Exception):
+    """Sinal para a GUI limpar a tela"""
+    pass
+
 
 reserved = {
     'help': 'HELP',
@@ -29,6 +34,8 @@ reserved = {
     'rm' : 'RM',
     'touch': 'TOUCH',
     'ia_mode': 'IA',
+    'cls': 'CLEAR',
+    'history' : 'HISTORY'
 }
 
 tokens = [
@@ -214,7 +221,12 @@ def p_builtin_touch(p):
         p[0] = ast('touch', path=p[2])
     else: 
         p[0] = ast('touch', path=None)
-
+        
+def p_builtin_clear(p):
+    '''builtin : CLEAR'''
+    p[0] = ast('clear')
+    
+    
 # --------- IA ----------
 def p_ia_mode(p):
     'ia_mode : IA'
@@ -259,6 +271,9 @@ class Executor:
         pode ser usado para carregar histórico de comandos, variáveis de 
         ambiente ou configurações iniciais da API de IA.
         """
+        
+        #Inicializa o historico
+        self.history = []
         pass
     
     def execute(self, ast_node):
@@ -274,6 +289,14 @@ class Executor:
         
         # 2. Extrai o tipo do comando da AST (ex: 'cd', 'ls', 'mkdir')
         command_type = ast_node.get('type')
+        
+        command_flag =" " if ast_node.get('flags') == None else ast_node.get('flags')
+        
+        command_path =" " if ast_node.get('path') == None else ast_node.get('path')
+        
+        full_command = f"{command_type} {command_flag} {command_path}"
+        
+        self.history.append(full_command)
         
         # 3. Metaprogramação: Cria o nome da função que deveria existir.
         # Ex: Se command_type é 'cd', procura por 'exec_cd'.
@@ -501,22 +524,66 @@ class Executor:
             print(f"TermIA: erro desconhecido no rm: {e}")
       
     def exec_ls(self, node):
-        """(Embutido) Lista arquivos do diretório (Cross-platform)."""
-        target_dir = node.get('path') or '.' # Se não tiver path, usa o atual '.'
+        """
+        (Embutido) Lista arquivos com suporte a flags:
+         -a : Mostra ocultos
+         -r : Inverte a ordem
+         -l : Mostra detalhes (tamanho e data)
+        """
+        target_dir = node.get('path') or '.'
+        flags_list = node.get('flags') or [] # Ex: ['-l', '-a'] ou ['-la']
         
+        # 1. Detectar quais opções estão ativas
+        # Juntamos todas as flags em uma única string para facilitar a busca
+        # Ex: ['-l', '-a'] vira "-l-a". Ex: ['-la'] vira "-la"
+        flags_str = "".join(flags_list)
+        
+        show_all = 'a' in flags_str   # Flag -a
+        reverse  = 'r' in flags_str   # Flag -r
+        long_fmt = 'l' in flags_str   # Flag -l
+
         try:
-            # Pega a lista de arquivos
+            # Pega todos os arquivos
             files = os.listdir(target_dir)
             
-            # (Opcional) Se tiver flag '-a' ou similar, lógica de filtro aqui
-            # No Linux, arquivos ocultos começam com '.'
-            if not node.get('flags'): 
-                 # Filtra ocultos se não tiver flags (exemplo simples)
-                 files = [f for f in files if not f.startswith('.')]
+            # LÓGICA DO -a (ALL)
+            # Se NÃO tiver a flag -a, filtramos tirando os que começam com '.'
+            if not show_all:
+                files = [f for f in files if not f.startswith('.')]
             
-            # Imprime os arquivos
-            for f in files:
-                print(f)
+            # Ordenação Padrão (Alfabética)
+            files.sort()
+
+            # LÓGICA DO -r (REVERSE)
+            if reverse:
+                files.reverse() # Inverte a lista
+            
+            # LÓGICA DO -l (LONG FORMAT)
+            if long_fmt:
+                for filename in files:
+                    full_path = os.path.join(target_dir, filename)
+                    
+                    # Pega estatísticas do arquivo (tamanho, data, etc)
+                    stats = os.stat(full_path)
+                    
+                    # Tamanho em Bytes
+                    size = stats.st_size
+                    
+                    # Data de modificação (convertendo timestamp para texto legível)
+                    mod_time = datetime.datetime.fromtimestamp(stats.st_mtime)
+                    date_str = mod_time.strftime('%Y-%m-%d %H:%M')
+                    
+                    # Identifica se é pasta <DIR> ou arquivo
+                    tipo = "<DIR>" if os.path.isdir(full_path) else "     "
+                    
+                    # Imprime formatado (alinhado em colunas)
+                    # {:<10} significa "ocupe 10 espaços alinhado à esquerda"
+                    print(f"{date_str}  {tipo}  {size:<10} {filename}")
+            
+            else:
+                # Se não for modo longo, imprime simples
+                for f in files:
+                    print(f)
                 
         except FileNotFoundError:
             print(f"TermIA: ls: diretório não encontrado: {target_dir}")
@@ -524,7 +591,22 @@ class Executor:
             print(f"TermIA: ls: '{target_dir}' não é um diretório.")
         except Exception as e:
             print(f"TermIA: erro no ls: {e}")
+            
+    def exec_clear(self, node):
+        """(Embutido) Lança um sinal para a GUI limpar o texto."""
+        # Não fazemos a limpeza aqui, apenas pedimos para a GUI fazer.
+        raise ClearScreenSignal()
     
+    def exec_history(self,node):
+        
+        if not self.history:
+            print("Historico vazio")
+            return
+
+        print("=== Histórico de Comandos ===")
+        
+        for i,cmd in enumerate(self.history):
+            print(cmd)
     # ----------------------------------------------
     # MODO INTERATIVO DE IA (SUB-SHELL)
     # ----------------------------------------------
@@ -700,6 +782,14 @@ class TermIAGUI:
         self.write_to_console("Bem-vindo ao TermIA [Versão 1.0]\n", "prompt")
         self.write_to_console("Copyright (c) 2025 Universidade Federal de Itajubá.\n\n")
         self.update_prompt()
+        
+        #Controle de Histórico para navegação ---
+        self.command_history = [] # Guarda as strings digitadas
+        self.history_index = 0    # Ponteiro de onde estamos na lista
+        
+        # Bind das Teclas de Seta ---
+        self.input_entry.bind("<Up>", self.navigate_history_up)
+        self.input_entry.bind("<Down>", self.navigate_history_down)
 
     def start(self):
         """Inicia o loop da interface gráfica"""
@@ -733,6 +823,11 @@ class TermIAGUI:
             self.update_prompt()
             return
 
+        # Salva no histórico de navegação (visual) ---
+        if command_text.strip():
+            self.command_history.append(command_text)
+            self.history_index = len(self.command_history) # Reseta ponteiro pro final
+            
         # --- Lógica de Captura do Print ---
         # Aqui fazemos a mágica: Desviamos o sys.stdout para uma variável
         # Assim, tudo que seu Executor der 'print', nós pegamos.
@@ -770,7 +865,14 @@ class TermIAGUI:
                         line_to_parse += "\n"
                     
                     ast_node = self.parser.parse(line_to_parse, lexer=self.lexer)
-                    self.executor.execute(ast_node)
+                    try:
+                        self.executor.execute(ast_node)
+                    except ClearScreenSignal:
+                    # --- A MÁGICA DO CLEAR ACONTECE AQUI ---
+                        self.output_area.configure(state="normal")
+                        self.output_area.delete("1.0", "end") # Apaga tudo
+                        self.output_area.configure(state="disabled")
+                    
 
         except Exception as e:
             print(f"Erro Crítico: {e}")
@@ -785,6 +887,31 @@ class TermIAGUI:
             
             # Prepara para o próximo comando
             self.update_prompt()
+            
+    def navigate_history_up(self, event):
+        """Volta no histórico (Seta Cima)"""
+        if not self.command_history: return
+        
+        # Decrementa o índice (sem passar de 0)
+        self.history_index = max(0, self.history_index - 1)
+        
+        # Atualiza o input
+        self.input_entry.delete(0, "end")
+        self.input_entry.insert(0, self.command_history[self.history_index])
+
+    def navigate_history_down(self, event):
+        """Avança no histórico (Seta Baixo)"""
+        if not self.command_history: return
+        
+        # Incrementa o índice
+        if self.history_index < len(self.command_history) - 1:
+            self.history_index += 1
+            self.input_entry.delete(0, "end")
+            self.input_entry.insert(0, self.command_history[self.history_index])
+        else:
+            # Se passar do último, limpa a linha (volta pro comando novo)
+            self.history_index = len(self.command_history)
+            self.input_entry.delete(0, "end")
 
 if __name__ == "__main__":
     # Carrega variáveis de ambiente (segurança)

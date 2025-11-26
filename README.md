@@ -68,7 +68,14 @@ Para criar a experiência de terminal, o projeto intercepta tudo o que seria imp
 | `echo` | Imprime texto na tela. | `echo Olá Mundo` |
 | `help` | Mostra a lista de ajuda. | `help` |
 | `exit` | Fecha o terminal. | `exit` |
+| `history` | Mostra o historico de comandos. | `exit` |
 
+**Flags**
+| Comando | Flag | Descrição |
+| :--- | :--- | :--- |
+| `ls` | `-a` | Mostra arquivos ocultos. |
+| `ls` | `-r` | Mostra arquivos na ordem invertida. |
+| `ls` | `-l` | Mostra os arquivos com mais informações como horario da ultima edição, tipo do arquivo e o seu tamanho em bytes  |
 **Inteligência Artificial**
 
 | Comando | Descrição | 

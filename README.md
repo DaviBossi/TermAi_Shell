@@ -118,7 +118,7 @@ Para usar o `ia_mode`, você precisa de uma chave gratuita do Google Gemini.
 
 Após configurar o ambiente e a chave:
   ```bash
-python termai.py
+python src\main.py
 ```
 *(Substitua termia.py pelo nome do seu arquivo principal, caso seja diferente)*
 

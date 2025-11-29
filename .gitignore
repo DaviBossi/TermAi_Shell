@@ -1,5 +1,5 @@
 /EntregaParcial
-/.venv
+/venv
 /__pycache__
 .env
 parser.out

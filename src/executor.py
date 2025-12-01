@@ -105,6 +105,7 @@ class Executor:
         print("  pwd           - Mostra o diretório atual")
         print("  ls [-flags] [path] - Mostra todos os arquivos no diretorio atual")
         print("  mkdir <path> - Cria uma pasta com o nome desejado")
+        print("  rmdir <path> - Exclui uma pasta")
         print("  touch <path> - Cria um arquivo com o nome desejado")
         print("  echo <args...> - Printa no terminal a mensagem escrita")
         print("  show <file> - Mostra todo o conteudo de um arquivo")

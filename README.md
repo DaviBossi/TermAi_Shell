@@ -76,6 +76,8 @@ Para criar a experiência de terminal, o projeto intercepta tudo o que seria imp
 | `ls` | `-a` | Mostra arquivos ocultos. |
 | `ls` | `-r` | Mostra arquivos na ordem invertida. |
 | `ls` | `-l` | Mostra os arquivos com mais informações como horario da ultima edição, tipo do arquivo e o seu tamanho em bytes  |
+
+
 **Inteligência Artificial**
 
 | Comando | Descrição | 
@@ -118,9 +120,9 @@ Para usar o `ia_mode`, você precisa de uma chave gratuita do Google Gemini.
 
 Após configurar o ambiente e a chave:
   ```bash
-python termai.py
+python src/main.py
 ```
-*(Substitua termia.py pelo nome do seu arquivo principal, caso seja diferente)*
+*(Substitua main.py pelo nome do seu arquivo principal, caso seja diferente)*
 
 Uma janela preta se abrirá. Digite `help` para começar!
 

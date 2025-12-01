@@ -82,7 +82,7 @@ Para criar a experiência de terminal, o projeto intercepta tudo o que seria imp
 
 | Comando | Descrição | 
 | :--- | :--- |
-| ia_mode | Entra no Modo Interativo. O prompt muda e tudo que for digitado é enviado para o Google Gemini. Digite `sair` para voltar.
+| ia_mode | Entra no Modo Interativo. O prompt muda e tudo que for digitado é enviado para o Google Gemini. Digite `exit` para voltar.
 
 # 🛠 Pré-requisitos e Instalação
 
